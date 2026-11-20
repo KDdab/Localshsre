@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>LocalShare — Instant Local & Cloud File Sharing</title>
+  <meta name="description" content="Share files and text seamlessly between devices on the same Wi-Fi or across the internet. No cloud storage, no accounts, private and fast.">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <!-- Full Window Drag & Drop Overlay -->
+  <div id="dropOverlay" class="drop-overlay hidden">
+    <div class="drop-modal">
+      <div class="drop-icon">📥</div>
+      <h3>Drop files anywhere to share</h3>
+      <p>Release to add files to your transfer queue</p>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <!-- Navigation Bar -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path>
+            <path d="M12 12v9"></path>
+            <path d="m16 16-4-4-4 4"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">LocalShare</span>
+          <span class="brand-badge">v2.0 Web</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Room Pill -->
+        <button id="roomBtn" class="pill-btn room-pill" title="Click to change room or share room code">
+          <span class="pulse-dot"></span>
+          <span class="pill-label">Room:</span>
+          <span id="currentRoomText" class="pill-val">Connecting…</span>
+        </button>
+
+        <!-- QR Code Button -->
+        <button id="qrBtn" class="icon-btn" title="Show QR Code to connect mobile devices">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+            <path d="M7 7h.01M18 7h.01M7 18h.01M18 18h.01M14 10h3M10 14v3"></path>
+          </svg>
+        </button>
+
+        <!-- Dark / Light Theme Toggle -->
+        <button id="themeToggleBtn" class="icon-btn" title="Toggle Dark/Light Mode">
+          <span class="theme-icon sun-icon">☀️</span>
+          <span class="theme-icon moon-icon">🌙</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Identity & Status Strip -->
+    <div class="identity-strip">
+      <div class="identity-info">
+        <span class="avatar-badge" id="myAvatar">💻</span>
+        <div class="identity-details">
+          <div class="identity-title-row">
+            <span class="identity-label">You are</span>
+            <span id="myNameText" class="identity-name">Loading…</span>
+            <button id="renameBtn" class="mini-icon-btn" title="Rename this device">✏️</button>
+          </div>
+          <span id="myMetaText" class="identity-meta">Detecting network…</span>
+        </div>
+      </div>
+
+      <div class="quick-status">
+        <span id="connectionBadge" class="status-badge connected">
+          <span class="status-indicator"></span>
+          <span id="connectionText">Ready</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Radar & Discovered Devices Section -->
+      <section class="radar-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2>Nearby Devices</h2>
+            <span id="peerCountBadge" class="count-badge">0 found</span>
+          </div>
+          <button id="refreshPeersBtn" class="mini-btn">🔄 Refresh</button>
+        </div>
+
+        <div class="radar-container" id="radarArea">
+          <!-- Animated Radar Waves -->
+          <div class="radar-waves">
+            <div class="wave wave-1"></div>
+            <div class="wave wave-2"></div>
+            <div class="wave wave-3"></div>
+          </div>
+
+          <!-- Peer Nodes Grid -->
+          <div class="peers-grid" id="peersGrid">
+            <!-- Dynamic peer cards rendered here -->
+          </div>
+
+          <!-- Empty Radar State -->
+          <div id="emptyRadar" class="empty-radar">
+            <div class="empty-icon-wrap">
+              <span class="radar-ping"></span>
+              <span class="empty-icon">📡</span>
+            </div>
+            <h3>Looking for devices…</h3>
+            <p>Open <strong>LocalShare</strong> on another phone, tablet, or PC connected to this Wi-Fi.</p>
+            <div class="empty-actions">
+              <button class="btn btn-outline" id="scanQrHeroBtn">📱 Scan QR with Phone</button>
+              <button class="btn btn-outline" id="joinRoomHeroBtn">🔑 Custom Room Code</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- File Queue & Transfer Controls Section -->
+      <section class="transfer-control-section" id="transferControlSection">
+        <div class="selection-banner" id="selectionBanner" style="display: none;">
+          <div class="selected-peer-info">
+            <span class="selected-dot"></span>
+            <span>Sending to: <strong id="selectedPeerName">Device</strong></span>
+          </div>
+          <button id="clearSelectionBtn" class="text-btn">Deselect</button>
+        </div>
+
+        <!-- Dropzone & File Picker -->
+        <div class="dropzone-card" id="dropzone">
+          <input type="file" id="filePicker" multiple hidden>
+          <div class="dropzone-body">
+            <div class="dropzone-icon">📁</div>
+            <div class="dropzone-text">
+              <h3>Drag & drop files here</h3>
+              <p>or select files or folders from your device</p>
+            </div>
+            <div class="dropzone-buttons">
+              <button class="btn btn-primary" id="pickFilesBtn">Choose Files</button>
+              <button class="btn btn-secondary" id="sendTextBtn">✍️ Send Text / Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selected Files List -->
+        <div class="file-queue-card" id="fileQueueCard" style="display: none;">
+          <div class="queue-header">
+            <h4>Files ready to send (<span id="queueCount">0</span>)</h4>
+            <div class="queue-meta">
+              <span id="queueTotalSize">0 MB</span>
+              <button id="clearQueueBtn" class="text-btn danger-text">Clear All</button>
+            </div>
+          </div>
+          <div class="queue-list" id="queueList">
+            <!-- Dynamic file items -->
+          </div>
+          <div class="queue-footer">
+            <button class="btn btn-primary btn-large" id="sendBtn" disabled>
+              🚀 Send to Selected Device
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Sending Card -->
+        <div class="active-transfer-card" id="activeTxCard" style="display: none;">
+          <div class="tx-card-header">
+            <div class="tx-title-group">
+              <span class="tx-badge" id="txStatusBadge">Sending</span>
+              <h4 id="txTargetTitle">Sending files…</h4>
+            </div>
+            <button class="btn btn-small btn-danger" id="cancelTxBtn">Cancel</button>
+          </div>
+
+          <div class="progress-wrap">
+            <div class="progress-bar">
+              <div class="progress-fill" id="txProgressBar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div class="tx-metrics-row">
+            <span class="tx-pct" id="txPercentText">0%</span>
+            <span class="tx-transfer-stats" id="txStatsText">0 MB / 0 MB</span>
+            <span class="tx-speed" id="txSpeedText">0 MB/s</span>
+          </div>
+
+          <div class="tx-footer-meta">
+            <span class="tx-eta" id="txEtaText">Estimating time…</span>
+            <span class="tx-method" id="txMethodBadge">Direct P2P</span>
+          </div>
+        </div>
+
+        <!-- Active Receiving Card -->
+        <div class="active-transfer-card rx-card" id="activeRxCard" style="display: none;">
+          <div class="tx-card-header">
+            <div class="tx-title-group">
+              <span class="tx-badge rx-badge" id="rxStatusBadge">Receiving</span>
+              <h4 id="rxSenderTitle">Receiving files…</h4>
+            </div>
+            <button class="btn btn-small btn-secondary" id="dismissRxBtn" style="display: none;">Dismiss</button>
+          </div>
+
+          <div class="progress-wrap">
+            <div class="progress-bar">
+              <div class="progress-fill rx-fill" id="rxProgressBar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div class="tx-metrics-row">
+            <span class="tx-pct" id="rxPercentText">0%</span>
+            <span class="tx-transfer-stats" id="rxStatsText">0 MB / 0 MB</span>
+            <span class="tx-speed" id="rxSpeedText">0 MB/s</span>
+          </div>
+
+          <div class="rx-files-preview" id="rxFilesPreview">
+            <!-- Files list being received -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Transfer History / Received Files Drawer -->
+      <section class="history-section" id="historySection">
+        <div class="section-header">
+          <h3>Recent Transfers</h3>
+          <button id="clearHistoryBtn" class="text-btn">Clear History</button>
+        </div>
+        <div class="history-list" id="historyList">
+          <div class="empty-history" id="emptyHistory">
+            <span>No transfers yet in this session.</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-content">
+        <span>LocalShare Web — Direct Local Wi-Fi & P2P WebRTC Transfer</span>
+        <span class="footer-divider">•</span>
+        <a href="#about" id="aboutLink">About & Specs</a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODALS -->
+  <!-- ===================================================================== -->
+
+  <!-- Incoming Offer Modal -->
+  <div class="modal-backdrop" id="incomingModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-icon-header">
+        <span class="pulse-ring"></span>
+        <span class="modal-icon">📲</span>
+      </div>
+      <h3 class="modal-title">Incoming Transfer</h3>
+      <p class="modal-subtitle">
+        <strong id="incomingSenderName">Nearby Device</strong> wants to send you:
+      </p>
+
+      <div class="incoming-files-list" id="incomingFilesList">
+        <!-- File items -->
+      </div>
+
+      <div class="incoming-summary-row">
+        <span id="incomingTotalCount">0 files</span>
+        <span id="incomingTotalSize" class="text-bold">0 MB</span>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary btn-large" id="rejectOfferBtn">Decline</button>
+        <button class="btn btn-primary btn-large" id="acceptOfferBtn">Accept & Receive</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Code / Share Room Modal -->
+  <div class="modal-backdrop" id="qrModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header-row">
+        <h3>Connect Another Device</h3>
+        <button class="close-modal-btn" data-close="qrModal">✕</button>
+      </div>
+      <p class="modal-desc" style="margin-bottom: 8px;">Point your phone camera at this QR code to join this room instantly:</p>
+      <div style="font-size: 12px; color: var(--text-muted); background: var(--bg-tertiary); padding: 8px 12px; border-radius: var(--radius-sm); margin-bottom: 14px; text-align: center; border: 1px solid var(--border-color);">
+        📶 <strong>Note:</strong> Phone and PC must be connected to the same Wi-Fi.
+      </div>
+
+      <div class="qr-canvas-wrap">
+        <canvas id="qrCanvas"></canvas>
+      </div>
+
+      <div class="url-copy-box">
+        <input type="text" id="shareUrlInput" readonly>
+        <button class="btn btn-secondary" id="copyUrlBtn">Copy Link</button>
+      </div>
+
+      <div class="room-code-tag">
+        <span>Room Code:</span>
+        <strong id="qrRoomCodeText">LOCAL</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rename Device Modal -->
+  <div class="modal-backdrop" id="renameModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header-row">
+        <h3>Rename Device</h3>
+        <button class="close-modal-btn" data-close="renameModal">✕</button>
+      </div>
+      <p class="modal-desc">Choose a friendly name that other devices will see:</p>
+      <div class="input-group">
+        <input type="text" id="renameInput" maxlength="40" placeholder="e.g. My MacBook Pro">
+      </div>
+      <div class="modal-actions end">
+        <button class="btn btn-secondary" data-close="renameModal">Cancel</button>
+        <button class="btn btn-primary" id="saveRenameBtn">Save Name</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Room / Custom Code Modal -->
+  <div class="modal-backdrop" id="roomModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header-row">
+        <h3>Change Room</h3>
+        <button class="close-modal-btn" data-close="roomModal">✕</button>
+      </div>
+      <p class="modal-desc">Devices with the same room code can discover each other across different Wi-Fi networks or subnets:</p>
+      <div class="input-group">
+        <input type="text" id="roomInput" maxlength="20" placeholder="Enter Room Code (e.g. SKY-99)">
+      </div>
+      <div class="modal-actions end">
+        <button class="btn btn-outline" id="autoRoomBtn">Reset to Default</button>
+        <button class="btn btn-primary" id="joinRoomBtn">Join Room</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Send Text / Link Modal -->
+  <div class="modal-backdrop" id="sendTextModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header-row">
+        <h3>Send Text or Link</h3>
+        <button class="close-modal-btn" data-close="sendTextModal">✕</button>
+      </div>
+      <p class="modal-desc">Instantly beam text, passwords, or links to <strong id="sendTextTargetName">Device</strong>:</p>
+      <textarea id="textPayloadInput" rows="5" class="modal-textarea" placeholder="Type or paste text, URLs, notes here…"></textarea>
+      <div class="modal-actions end">
+        <button class="btn btn-secondary" data-close="sendTextModal">Cancel</button>
+        <button class="btn btn-primary" id="submitSendTextBtn">🚀 Send Text</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Incoming Text Message Modal -->
+  <div class="modal-backdrop" id="incomingTextModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header-row">
+        <h3>Received Text</h3>
+        <button class="close-modal-btn" data-close="incomingTextModal">✕</button>
+      </div>
+      <p class="modal-desc">Message received from <strong id="incomingTextSenderName">Nearby Device</strong>:</p>
+      <div class="received-text-box" id="receivedTextBox"></div>
+      <div class="modal-actions end">
+        <button class="btn btn-secondary" data-close="incomingTextModal">Close</button>
+        <button class="btn btn-primary" id="copyReceivedTextBtn">📋 Copy to Clipboard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="/static/js/qr.js"></script>
+  <script src="/static/js/transfer.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
