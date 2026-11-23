@@ -243,6 +243,8 @@
 
             <div class="scanner-controls">
               <button type="button" class="btn btn-secondary" id="stopCameraBtn">Cancel Camera</button>
+              <button type="button" class="btn btn-outline" id="uploadQrImageBtn">🖼 Upload QR Image</button>
+              <input type="file" id="qrImageInput" accept="image/*" hidden>
             </div>
           </div>
         </div>
@@ -295,7 +297,8 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Client-side Scripts -->
-  <script src="/js/qr-generator.js"></script>
+  <script src="/js/qrcode.bundle.js"></script>
+  <script src="/js/jsqr.min.js"></script>
   <script src="/js/qr-scanner.js"></script>
   <script src="/js/app.js"></script>
 </body>

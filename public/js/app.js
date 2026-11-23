@@ -304,7 +304,15 @@
     els.resultShareUrl.value = shareUrl;
 
     // Render QR Code onto canvas
-    if (window.QRGenerator) {
+    if (window.QRCode && window.QRCode.toCanvas) {
+      window.QRCode.toCanvas(els.resultQrCanvas, shareUrl, {
+        width: 220,
+        margin: 2,
+        color: { dark: '#000000', light: '#ffffff' }
+      }, (err) => {
+        if (err) console.error('[QRCode] Render error:', err);
+      });
+    } else if (window.QRGenerator) {
       window.QRGenerator.render(els.resultQrCanvas, shareUrl, { size: 220, margin: 2 });
     }
 
@@ -581,6 +589,28 @@
     els.tabEnterCode.addEventListener('click', () => switchReceiveTab('enterCode'));
     els.tabScanQr.addEventListener('click', () => switchReceiveTab('scanQr'));
     els.stopCameraBtn.addEventListener('click', () => switchReceiveTab('enterCode'));
+
+    // Upload QR Code Image File
+    const uploadQrImageBtn = $('uploadQrImageBtn');
+    const qrImageInput = $('qrImageInput');
+    if (uploadQrImageBtn && qrImageInput) {
+      uploadQrImageBtn.addEventListener('click', () => qrImageInput.click());
+      qrImageInput.addEventListener('change', async (e) => {
+        if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          try {
+            showToast('Scanning QR from image…', 'info');
+            const decodedUrl = await QRScanner.scanImageFile(file);
+            showToast('QR code detected successfully!', 'success');
+            stopCameraScanner();
+            findAndDisplayShare(decodedUrl);
+          } catch (err) {
+            showToast(err.message || 'No QR code found in the image', 'error');
+          }
+          e.target.value = '';
+        }
+      });
+    }
 
     // Find Share Form
     els.findShareForm.addEventListener('submit', (e) => {
