@@ -1,46 +1,83 @@
-# 🚀 LocalShare — Modern Local & Cloud File Sharing
+# 📦 ShareLocal — Temporary Code & QR-Based File Sharing
 
-> Instant, secure, and private peer-to-peer file & text sharing between phones, tablets, laptops, and desktops. No cloud storage needed, no account registration, and zero third-party tracking.
+> Instant, secure, and disposable file sharing between devices using **6-digit share codes, direct links, and QR codes**. No user accounts, no permanent storage, and automatic expiration.
 
 ---
 
-## 🌟 Overview & Key Enhancements Over Original Script
+## 🌟 Core Flow
 
-The original `localshare.py` was a monolithic Python CLI script using UDP broadcasts and standard library HTTP servers. While a great concept, it had significant practical limitations when used across real-world devices:
+```
+[ Sender ]                                                 [ Receiver ]
+   │                                                           │
+   ├─ 1. Uploads files (drag & drop / picker)                  │
+   ├─ 2. Backend stores files temporarily                      │
+   ├─ 3. Generates 6-character code (e.g. X7K92P) & QR        │
+   │                                                           │
+   │            (Share code, QR, or direct URL)                │
+   │──────────────────────────────────────────────────────────>│
+   │                                                           ├─ 4. Scans QR camera / enters code
+   │                                                           ├─ 5. Views files & live countdown timer
+   │                                                           └─ 6. Downloads files or "Download All" (ZIP)
+   │
+   ▼
+[ Automatic Expiration ] ──── 30 minutes ────> Files & metadata permanently deleted
+```
 
-| Feature / Problem | Original `localshare.py` | New Modern LocalShare Web |
-| :--- | :--- | :--- |
-| **Mobile Access (iOS / Android)** | ❌ Blocked (`403 local only`). Required Python running on the phone. | ✅ **Works on any mobile/desktop browser** (Safari, Chrome, Edge, Firefox) by opening the URL or scanning a QR code. |
-| **Transfer Architecture** | ⚠️ HTTP streaming to raw IP:port. Failed with browser **Mixed Content** on HTTPS and **Private Network Access (PNA)** blocks. | ✅ **Dual Engine**: High-speed **WebRTC DataChannel P2P** transfer + automatic **HTTP Chunked Relay** fallback. |
-| **Network Partitioning / Cloud** | ❌ UDP broadcast fails across VLANs, corporate/university Wi-Fi isolation, and cloud hosting. | ✅ **Subnet Auto-Discovery** + **Custom Room Codes / QR Codes** so devices connect across any network or cloud deployment. |
-| **Real-Time Signaling** | ⚠️ Constant 500ms CPU-polling loop (`/api/state`). | ✅ **Server-Sent Events (SSE)** with push notifications (< 5ms latency, zero polling lag). |
-| **File Storage on Mobile** | ❌ Files were saved only on the PC running the Python process. | ✅ **Native in-browser download** triggers automatically on phones and laptops when files arrive. |
-| **Clipboard / Text Sharing** | ❌ Not supported (files only). | ✅ **Instant text & link sharing** with one-click clipboard copying. |
-| **Audio & Visual Feedback** | ❌ Barebones UI without notifications. | ✅ **Glassmorphic responsive UI**, radar waves, Web Audio synthesized chimes, and dark/light themes. |
-| **Deployment Readiness** | ❌ Single-process localhost script. | ✅ **Docker**, **Docker Compose**, **Render**, **Railway**, and **Fly.io** ready with production WSGI support. |
+---
+
+## 🏗️ Architecture & Project Structure
+
+The backend is built with **Node.js + Express.js** following a clean, decoupled service architecture:
+
+```text
+server/
+├── config/
+│   └── index.js             # Environment variables & runtime defaults
+├── controllers/
+│   └── shareController.js   # HTTP request & response handlers
+├── routes/
+│   └── shareRoutes.js        # Express REST API endpoints
+├── services/
+│   ├── storageService.js    # Storage abstraction (swappable with S3/R2)
+│   ├── fileService.js       # Filename sanitization & streaming ZIP archiver
+│   └── shareService.js      # In-memory share lifecycle & metadata manager
+├── middleware/
+│   └── uploadMiddleware.js  # Multer streaming disk upload with size limits
+├── utils/
+│   ├── idGenerator.js       # Cryptographically secure unambiguous alphanumeric codes
+│   └── cleanupWorker.js     # Background cron worker to purge expired shares
+├── uploads/                 # Temporary storage directory (auto-purged)
+└── server.js                # Express app configuration & server entrypoint
+
+public/
+├── index.html               # Semantic, accessible single-page application
+├── favicon.svg              # Vector logo icon
+├── css/
+│   └── style.css            # Responsive design system (Dark & Light themes)
+└── js/
+    ├── qr-generator.js      # Pure JS HTML5 Canvas QR code renderer (zero CDN dependencies)
+    ├── qr-scanner.js        # Camera QR scanner with BarcodeDetector & fallback
+    └── app.js               # Client controller (SPA routing, drag & drop, XHR progress)
+```
 
 ---
 
 ## 🚀 Quick Start (Local Run)
 
 ### 1. Requirements
-- Python 3.8+ (tested on Python 3.8 – 3.14)
+- Node.js 18+ (tested on Node.js 20 & 24)
+- npm 9+
 
 ### 2. Install Dependencies
 ```bash
-pip install -r requirements.txt
+npm install
 ```
 
-### 3. Start the Server
+### 3. Run Development Server
 ```bash
-python app.py
+npm start
 ```
-
-The app will start on port `53317` and automatically launch your browser at:
-- **Local Web UI**: `http://localhost:53317`
-- **Network URL**: `http://<YOUR_LOCAL_IP>:53317`
-
-To connect a phone or another laptop, just scan the **QR Code** on the screen or open the Network URL on your phone's browser!
+The application will launch on **http://localhost:5000** (or your configured `PORT`).
 
 ---
 
@@ -49,85 +86,33 @@ To connect a phone or another laptop, just scan the **QR Code** on the screen or
 Run with Docker in seconds:
 
 ```bash
-# Build and run with Docker
-docker build -t localshare .
-docker run -d -p 53317:53317 -v $(pwd)/downloads:/root/Downloads/LocalShare localshare
+docker compose up -d
 ```
 
-Or using **Docker Compose**:
+Or using standard Docker CLI:
 ```bash
-docker-compose up -d
+docker build -t sharelocal .
+docker run -d -p 5000:5000 -v $(pwd)/server/uploads:/app/server/uploads sharelocal
 ```
 
 ---
 
-## ☁️ Cloud Deployment (Render / Railway / Fly.io / VPS)
+## 📡 REST API Reference
 
-LocalShare is cloud-ready out of the box and respects standard environment variables (`$PORT`, `$HOST`):
-
-### Deploy to Render
-1. Create a **New Web Service** pointing to your repository.
-2. Select **Python 3** environment.
-3. Build Command: `pip install -r requirements.txt`
-4. Start Command: `python app.py --no-browser --no-udp`
-
-### Deploy to Railway
-1. Click **New Project** -> Deploy from GitHub repo.
-2. Railway will automatically detect the `Dockerfile` or `Procfile` and deploy it.
-
-### Deploy to a Linux VPS (Ubuntu / Debian)
-```bash
-git clone <repo-url>
-cd localshare
-pip install -r requirements.txt
-# Run as a background service with Waitress or Gunicorn:
-python app.py --host 0.0.0.0 --port 53317 --no-browser
-```
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/share` | Upload files and create a temporary share (`multipart/form-data`) |
+| `GET` | `/api/share/:shareId` | Retrieve share details, file list, and remaining countdown |
+| `GET` | `/api/share/:shareId/file/:fileId` | Stream and download an individual file |
+| `GET` | `/api/share/:shareId/download-all` | Stream and download all files packaged as a `.zip` archive |
+| `DELETE` | `/api/share/:shareId` | Manually cancel and invalidate a share |
+| `GET` | `/api/health` | Health check endpoint |
 
 ---
 
-## 🛠️ CLI Options & Environment Variables
+## 🛡️ Security Features
 
-| Argument | Environment Variable | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `--port` | `PORT` | `53317` | Port for the HTTP & WebSocket/SSE server |
-| `--host` | `HOST` | `0.0.0.0` | Bind IP address (`0.0.0.0` binds to all interfaces) |
-| `--name` | - | Computer Name | Custom friendly name visible to nearby peers |
-| `--dir` | `STORAGE_DIR` | `~/Downloads/LocalShare` | Target folder for saving received files |
-| `--no-browser` | `HEADLESS` | `False` | Disables automatic browser launch |
-| `--no-udp` | `DISABLE_UDP` | `False` | Disables UDP LAN broadcasting (recommended for cloud) |
-
----
-
-## 📡 How It Works (Protocol Architecture)
-
-```
-[ Sender Browser ]                                           [ Receiver Browser ]
-       |                                                              |
-       |--- 1. POST /api/offer (File list, sizes, type) ------------->|
-       |                                                              |
-       |               (Receiver hears chime & sees modal)            |
-       |<-- 2. POST /api/offer/respond (Accept: true) ----------------|
-       |                                                              |
-       |=== 3. WebRTC DataChannel (Direct P2P LAN Transfer) =========>|
-       |       [Chunk 1..N with Backpressure & Speed Meter]           |
-       |       * Falls back to HTTP chunk relay if WebRTC blocked *    |
-       |                                                              |
-       |                               (Automatic browser download)    |
-       |<== 4. Transfer Completed Notification =======================|
-```
-
-1. **Discovery**: Web clients subscribe to the SSE stream (`/api/events`). Devices on the same network or with the same Room Code discover each other immediately.
-2. **Offer Handshake**: Sender proposes files. Recipient gets an audio chime and an incoming modal detailing file names, types, and sizes.
-3. **Data Channel Streaming**: Once accepted, files stream directly between browsers over encrypted WebRTC DataChannels at maximum LAN speeds.
-4. **Relay Fallback**: If strict corporate firewalls block WebRTC, the server seamlessly relays chunks via `/api/transfer/<id>/<idx>/chunk`.
-5. **Auto-Download**: Received files automatically download in the recipient's browser.
-
----
-
-## 🔒 Security & Privacy
-
-- **No Remote Cloud Storage**: Files stream in real-time between devices. Data does not live on third-party servers.
-- **Path Traversal Protection**: All file names are sanitized to prevent directory traversal (`../`).
-- **Encrypted In Flight**: WebRTC DataChannels are encrypted by default via DTLS/SCTP.
-- **Room Code Isolation**: Devices can create isolated rooms to prevent unauthorized requests on public Wi-Fi networks.
+- **Cryptographic Share IDs**: Uses unambiguous uppercase alphanumeric characters (`23456789ABCDEFGHJKLMNPQRSTUVWXYZ`, excluding 0, O, 1, I, L) generated via `crypto.randomBytes`.
+- **Path Traversal Protection**: All user-supplied filenames are sanitized to prevent directory traversal (`../`) and illegal character injection.
+- **Streaming Large Files**: Uploads and downloads are streamed through pipes, preventing high memory usage or server crashes.
+- **Automatic Purging**: Background worker executes every 1–2 minutes to guarantee expired files and metadata are deleted promptly from memory and disk.

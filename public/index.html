@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>ShareLocal — Temporary Code & QR File Sharing</title>
+  <meta name="description" content="Send and receive files securely using temporary 6-digit codes and QR codes. No accounts, no permanent storage, automatic expiration.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Navigation Header -->
+    <header class="app-header">
+      <div class="brand-wrap" id="brandBtn" role="button" tabindex="0">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path>
+            <path d="M12 12v9"></path>
+            <path d="m16 16-4-4-4 4"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">ShareLocal</h1>
+          <span class="brand-sub">Temporary File Transfer</span>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <button id="themeToggleBtn" class="icon-btn" title="Toggle Dark/Light Mode">
+          <span class="sun-icon">☀️</span>
+          <span class="moon-icon">🌙</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Views Container -->
+    <main class="main-content">
+
+      <!-- ================================================================= -->
+      <!-- VIEW 1: LANDING PAGE -->
+      <!-- ================================================================= -->
+      <section id="landingView" class="view-section active">
+        <div class="hero-header">
+          <h2>Send files securely & temporarily</h2>
+          <p>No accounts required. Upload files to generate a 6-digit code or QR code. The receiver scans or enters the code to download. Everything expires automatically.</p>
+        </div>
+
+        <div class="action-cards-grid">
+          <!-- Option 1: Sender -->
+          <div class="choice-card" id="chooseSendBtn" role="button" tabindex="0">
+            <div class="card-icon send-icon">
+              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 2 11 13"></path>
+                <path d="m22 2-7 20-4-9-9-4 20-7z"></path>
+              </svg>
+            </div>
+            <h3>I want to send files</h3>
+            <p>Upload documents, photos, videos, or archives and get a one-time code and QR code.</p>
+            <span class="card-cta">Send Files →</span>
+          </div>
+
+          <!-- Option 2: Receiver -->
+          <div class="choice-card" id="chooseReceiveBtn" role="button" tabindex="0">
+            <div class="card-icon receive-icon">
+              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+                <path d="M7 7h.01M18 7h.01M7 18h.01M18 18h.01M14 10h3M10 14v3"></path>
+              </svg>
+            </div>
+            <h3>I want to receive files</h3>
+            <p>Scan a QR code with your camera or enter a 6-digit share code to download.</p>
+            <span class="card-cta">Receive Files →</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- VIEW 2: SENDER FLOW -->
+      <!-- ================================================================= -->
+      <section id="senderView" class="view-section">
+        <!-- Sender Step 1: File Selection & Upload -->
+        <div id="senderUploadStep">
+          <div class="view-back-bar">
+            <button class="back-link-btn" data-back="landingView">← Back</button>
+            <span class="step-indicator">Step 1 of 2: Upload Files</span>
+          </div>
+
+          <!-- Drag and Drop Area -->
+          <div class="dropzone" id="dropzone">
+            <input type="file" id="fileInput" multiple hidden>
+            <div class="dropzone-content">
+              <div class="dropzone-icon">📁</div>
+              <h3>Drag & Drop Files Here</h3>
+              <p>or click the button below to browse from your device</p>
+              <button type="button" class="btn btn-primary" id="browseFilesBtn">Choose Files</button>
+            </div>
+          </div>
+
+          <!-- Selected Files Queue -->
+          <div class="selected-files-card" id="selectedFilesCard" style="display: none;">
+            <div class="card-header-row">
+              <h4>Selected Files (<span id="fileCountText">0</span>)</h4>
+              <span class="total-size-badge" id="totalSizeText">0 B</span>
+            </div>
+
+            <div class="files-scroll-list" id="selectedFilesList">
+              <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Expiration Option -->
+            <div class="expiration-select-row">
+              <label for="expirationSelect">Expiration Time:</label>
+              <select id="expirationSelect" class="form-select">
+                <option value="15">15 Minutes</option>
+                <option value="30" selected>30 Minutes (Recommended)</option>
+                <option value="60">1 Hour</option>
+                <option value="180">3 Hours</option>
+                <option value="1440">24 Hours</option>
+              </select>
+            </div>
+
+            <!-- Upload Progress Bar (during upload) -->
+            <div class="upload-progress-wrap" id="uploadProgressWrap" style="display: none;">
+              <div class="progress-meta">
+                <span id="uploadStatusText">Uploading files…</span>
+                <span id="uploadPercentText">0%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-bar" id="uploadProgressBar" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <div class="card-footer-row">
+              <button type="button" class="btn btn-secondary" id="clearFilesBtn">Clear All</button>
+              <button type="button" class="btn btn-primary btn-large" id="uploadAndShareBtn">
+                🚀 Upload & Share
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sender Step 2: Share Code & QR Result Screen -->
+        <div id="senderResultStep" style="display: none;">
+          <div class="view-back-bar">
+            <button class="back-link-btn" id="newShareTopBtn">← Create New Share</button>
+            <span class="step-indicator success-text">✅ Files Uploaded Successfully</span>
+          </div>
+
+          <div class="result-card">
+            <div class="code-display-group">
+              <span class="code-label">Share Code</span>
+              <div class="code-box">
+                <span class="code-text" id="resultShareCode">------</span>
+                <button class="btn btn-small btn-secondary" id="copyCodeBtn" title="Copy 6-digit code">
+                  📋 Copy Code
+                </button>
+              </div>
+            </div>
+
+            <div class="qr-display-group">
+              <div class="qr-canvas-wrapper">
+                <canvas id="resultQrCanvas" width="220" height="220"></canvas>
+              </div>
+              <p class="qr-instruction">Scan with another phone or device camera to download instantly</p>
+            </div>
+
+            <div class="link-display-group">
+              <span class="code-label">Shareable Link</span>
+              <div class="link-input-row">
+                <input type="text" id="resultShareUrl" readonly class="form-input">
+                <button class="btn btn-secondary" id="copyLinkBtn">Copy Link</button>
+              </div>
+            </div>
+
+            <div class="share-actions-grid">
+              <button class="btn btn-outline" id="downloadQrBtn">🖼 Download QR</button>
+              <button class="btn btn-outline" id="nativeShareBtn" style="display: none;">📱 Share Link</button>
+              <button class="btn btn-primary" id="createNewShareBtn">➕ Create New Share</button>
+            </div>
+
+            <div class="share-expiry-notice" id="shareExpiryNotice">
+              ⏳ This share will automatically expire and be deleted in <strong>30 minutes</strong>.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- VIEW 3: RECEIVER FLOW -->
+      <!-- ================================================================= -->
+      <section id="receiverView" class="view-section">
+        <div class="view-back-bar">
+          <button class="back-link-btn" data-back="landingView">← Back</button>
+          <span class="step-indicator">Receive Files</span>
+        </div>
+
+        <div class="receive-tabs">
+          <button class="tab-btn active" id="tabEnterCode">⌨️ Enter Code</button>
+          <button class="tab-btn" id="tabScanQr">📷 Scan QR Code</button>
+        </div>
+
+        <!-- Method B: Enter Code / Paste Link -->
+        <div class="tab-content active" id="contentEnterCode">
+          <div class="code-input-card">
+            <h3>Enter Share Code</h3>
+            <p>Enter the 6-digit code given to you, or paste the complete share link:</p>
+
+            <form id="findShareForm">
+              <div class="input-row">
+                <input type="text" id="manualCodeInput" class="code-input-field" placeholder="e.g. X7K92P" maxlength="100" autocomplete="off" spellcheck="false" required>
+              </div>
+              <button type="submit" class="btn btn-primary btn-large" id="findFilesBtn">
+                🔍 Find Files
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Method A: Camera QR Scanner -->
+        <div class="tab-content" id="contentScanQr">
+          <div class="scanner-card">
+            <div class="scanner-header">
+              <h3>Scan QR Code</h3>
+              <p>Point your device camera at the QR code displayed on the sender's screen:</p>
+            </div>
+
+            <div class="scanner-container">
+              <video id="scannerVideo" playsinline muted></video>
+              <canvas id="scannerCanvas" style="display: none;"></canvas>
+              <div class="scanner-overlay" id="scannerOverlay">
+                <div class="scanner-box">
+                  <div class="scanner-line"></div>
+                </div>
+              </div>
+              <div class="scanner-prompt" id="scannerPrompt">
+                <span>Requesting camera permission…</span>
+              </div>
+            </div>
+
+            <div class="scanner-controls">
+              <button type="button" class="btn btn-secondary" id="stopCameraBtn">Cancel Camera</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- VIEW 4: RECEIVER DOWNLOAD PAGE -->
+      <!-- ================================================================= -->
+      <section id="downloadView" class="view-section">
+        <div class="view-back-bar">
+          <button class="back-link-btn" data-back="landingView">← Back to Home</button>
+          <span class="step-indicator success-text">Files Available</span>
+        </div>
+
+        <div class="download-card">
+          <div class="download-header-row">
+            <div class="download-title-group">
+              <div class="share-badge">Share ID: <strong id="dlShareId">------</strong></div>
+              <h3 id="dlTotalSummary">0 files available</h3>
+            </div>
+            <div class="countdown-badge" id="countdownBadge">
+              <span class="clock-icon">⏳</span>
+              <span>Expires in: <strong id="countdownText">--:--</strong></span>
+            </div>
+          </div>
+
+          <!-- Files List -->
+          <div class="download-files-list" id="downloadFilesList">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <!-- Download All Button -->
+          <div class="download-actions-wrap">
+            <a href="#" class="btn btn-primary btn-large" id="downloadAllBtn">
+              📦 Download All as ZIP (<span id="dlTotalSizeText">0 B</span>)
+            </a>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>ShareLocal — Temporary, Private & Disposable File Sharing. No account needed.</p>
+    </footer>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Client-side Scripts -->
+  <script src="/js/qr-generator.js"></script>
+  <script src="/js/qr-scanner.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

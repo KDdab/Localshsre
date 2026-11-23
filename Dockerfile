@@ -1,36 +1,31 @@
-# LocalShare Production Multi-Platform Dockerfile
-FROM python:3.12-slim
+# Production Node.js Multi-Platform Dockerfile
+FROM node:20-alpine
 
-# Prevent python from buffering stdout and writing .pyc files
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PORT=53317
+# Set production environment
+ENV NODE_ENV=production
+ENV PORT=5000
 ENV HOST=0.0.0.0
-ENV HEADLESS=true
-ENV DISABLE_UDP=true
+ENV SHARE_EXPIRATION_MINUTES=30
+ENV STORAGE_PATH=/app/server/uploads
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Install dependencies first for better caching
+COPY package*.json ./
+RUN npm ci --omit=dev || npm install --production
 
-# Install python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy server and public assets
+COPY server/ ./server/
+COPY public/ ./public/
 
-# Copy application code
-COPY . .
+# Create persistent uploads directory
+RUN mkdir -p /app/server/uploads
 
-# Create downloads volume directory
-RUN mkdir -p /root/Downloads/LocalShare
-
-EXPOSE 53317
+EXPOSE 5000
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:${PORT}/api/info || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/api/health || exit 1
 
-# Launch using production WSGI server
-CMD ["python", "app.py", "--no-browser"]
+# Start server
+CMD ["node", "server/server.js"]

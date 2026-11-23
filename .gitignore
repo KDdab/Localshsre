@@ -1,21 +1,28 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+# Dependencies
+node_modules/
+package-lock.json
 
-# Local transfers & downloads
+# Environment variables
+.env
+.env.local
+
+# Temporary uploads (keep folder, ignore uploaded files)
+server/uploads/*
+!server/uploads/.gitkeep
 downloads/
 temp_transfers/
 
-# Virtual Environments
-.env
-.venv
-env/
-venv/
-ENV/
+# Python caches (from previous script)
+__pycache__/
+*.py[cod]
 
-# System & Editor files
-.vscode/
-.idea/
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System & IDE files
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/

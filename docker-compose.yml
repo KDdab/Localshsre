@@ -1,15 +1,17 @@
 version: '3.8'
 
 services:
-  localshare:
+  sharelocal:
     build: .
-    container_name: localshare
+    container_name: sharelocal
     restart: unless-stopped
     ports:
-      - "53317:53317"
+      - "5000:5000"
     environment:
-      - PORT=53317
+      - PORT=5000
       - HOST=0.0.0.0
-      - DISABLE_UDP=false
+      - SHARE_EXPIRATION_MINUTES=30
+      - MAX_FILE_SIZE=524288000
+      - STORAGE_PATH=/app/server/uploads
     volumes:
-      - ./downloads:/root/Downloads/LocalShare
+      - ./server/uploads:/app/server/uploads
